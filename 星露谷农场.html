@@ -1,0 +1,715 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>像素农场 · 灵魂探索</title>
+    <!-- 引入像素字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* 严格限制调色板 - 16-bit RPG Style */
+            --c-brown: #8B5A2B;      /* 木质/边框 */
+            --c-green: #5E8C31;      /* 草地/成功 */
+            --c-blue: #7EC0EE;       /* 天空/信息 */
+            --c-wheat: #D8A03D;      /* 高亮/选中 */
+            --c-orange: #E07A2F;     /* 强调/警告 */
+            --c-beige: #F4E4BC;      /* 纸张/背景 */
+            --c-dark: #3E2723;       /* 文字 (代替纯黑) */
+            --c-light: #FFF8E1;      /* 高光 (代替纯白) */
+            
+            /* 场景特定颜色 */
+            --c-night-sky: #1a1025;
+            --c-wood-floor: #5d4037;
+            --c-candle-light: rgba(255, 200, 100, 0.15);
+            --c-autumn-sky-top: #ff9a56;
+            --c-autumn-sky-bot: #5d4037;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'VT323', monospace;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: var(--c-dark);
+            transition: background 1s ease;
+        }
+
+        /* 
+           场景 1: 木屋室内 (测试页背景)
+           Prompt: 16-bit pixel art wooden cottage interior, warm candle light...
+        */
+        .bg-cottage {
+            background-color: var(--c-wood-floor);
+            /* 模拟木地板 */
+            background-image: 
+                repeating-linear-gradient(90deg, transparent 0, transparent 39px, rgba(0,0,0,0.2) 40px),
+                linear-gradient(180deg, var(--c-wood-floor) 0%, #3e2723 100%);
+            background-size: 100% 100%, 100% 100%;
+            position: relative;
+        }
+
+        /* 木屋内的窗户 (夜空) */
+        .bg-cottage::before {
+            content: '';
+            position: absolute;
+            top: 10%;
+            right: 10%;
+            width: 150px;
+            height: 150px;
+            background: var(--c-night-sky);
+            border: 8px solid #3e2723;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            /* 模拟窗外的星星 */
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 1px, transparent 2px),
+                radial-gradient(white, rgba(255,255,255,.2) 1px, transparent 2px);
+            background-size: 30px 30px, 50px 50px;
+            background-position: 0 0, 20px 20px;
+            z-index: -2;
+            opacity: 0.8;
+        }
+
+        /* 木屋内的烛光 (中心暖光) */
+        .bg-cottage::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120%;
+            height: 120%;
+            background: radial-gradient(circle, var(--c-candle-light) 0%, transparent 60%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* 
+           场景 2: 秋日丰收 (结果页背景)
+           Prompt: 16-bit pixel art autumn harvest farm scene, golden crops...
+        */
+        .bg-harvest {
+            background: linear-gradient(180deg, var(--c-autumn-sky-top) 0%, var(--c-autumn-sky-bot) 100%);
+            position: relative;
+        }
+
+        /* 远处的树林剪影 */
+        .bg-harvest::before {
+            content: '';
+            position: absolute;
+            bottom: 30%;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background-image: 
+                radial-gradient(circle at 50% 100%, #5d4037 20px, transparent 21px),
+                radial-gradient(circle at 50% 100%, #5d4037 20px, transparent 21px),
+                radial-gradient(circle at 50% 100%, #5d4037 20px, transparent 21px);
+            background-size: 60px 60px;
+            background-position: 0 0, 30px 0, 15px 0;
+            opacity: 0.6;
+            z-index: -2;
+        }
+
+        /* 近处的金色作物 */
+        .bg-harvest::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            background-image: 
+                repeating-linear-gradient(90deg, 
+                    transparent 0, 
+                    transparent 10px, 
+                    rgba(216, 160, 61, 0.4) 11px, 
+                    rgba(216, 160, 61, 0.4) 14px
+                );
+            z-index: -1;
+        }
+
+        /* 飘落的像素叶子 (动画) */
+        .falling-leaf {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: var(--c-wheat);
+            top: -10px;
+            animation: fall linear infinite;
+            z-index: 0;
+            opacity: 0.7;
+        }
+
+        @keyframes fall {
+            to { transform: translateY(110vh) rotate(360deg); }
+        }
+
+        /* CRT 扫描线效果 overlay */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.6;
+        }
+
+        /* 主游戏窗口容器 */
+        .game-boy {
+            width: 100%;
+            max-width: 640px;
+            height: 85vh;
+            max-height: 800px;
+            background: rgba(244, 228, 188, 0.95); /* 高不透明度以确保文字可读 */
+            border: 8px solid var(--c-brown);
+            border-radius: 4px;
+            box-shadow: 
+                0 0 0 4px var(--c-dark),
+                20px 20px 0px rgba(0,0,0,0.5),
+                inset 0 0 60px rgba(62, 39, 35, 0.3);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+            backdrop-filter: blur(1px);
+            transition: transform 0.3s ease;
+        }
+
+        /* 顶部状态栏 */
+        .status-bar {
+            background: var(--c-beige);
+            border: 4px solid var(--c-dark);
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+            image-rendering: pixelated;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .pixel-avatar {
+            width: 36px;
+            height: 36px;
+            background: var(--c-orange);
+            border: 3px solid var(--c-dark);
+            box-shadow: inset -2px -2px 0px rgba(0,0,0,0.3);
+        }
+
+        .level-badge {
+            background: var(--c-blue);
+            color: var(--c-dark);
+            padding: 2px 10px;
+            border: 2px solid var(--c-dark);
+            font-size: 1.4rem;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+            text-transform: uppercase;
+        }
+
+        /* 主内容区域 */
+        .dialogue-box {
+            flex: 1;
+            background: var(--c-beige);
+            border: 4px solid var(--c-dark);
+            padding: 25px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset 6px 6px 0px rgba(62, 39, 35, 0.1);
+            overflow-y: auto;
+        }
+
+        .dialogue-box::-webkit-scrollbar {
+            width: 14px;
+            background: var(--c-brown);
+            border-left: 2px solid var(--c-dark);
+        }
+        .dialogue-box::-webkit-scrollbar-thumb {
+            background: var(--c-orange);
+            border: 2px solid var(--c-dark);
+        }
+
+        .quest-title {
+            font-size: 2rem;
+            color: var(--c-orange);
+            text-shadow: 2px 2px 0px var(--c-brown);
+            margin-bottom: 20px;
+            border-bottom: 4px double var(--c-brown);
+            padding-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .question-text {
+            font-size: 1.8rem;
+            line-height: 1.4;
+            margin-bottom: 25px;
+            color: var(--c-dark);
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .wood-btn {
+            background: var(--c-brown);
+            color: var(--c-light);
+            border: 4px solid var(--c-dark);
+            padding: 14px 20px;
+            font-family: 'VT323', monospace;
+            font-size: 1.5rem;
+            cursor: pointer;
+            text-align: left;
+            position: relative;
+            transition: all 0.1s;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.4);
+            text-transform: uppercase;
+        }
+
+        .wood-btn:hover {
+            background: var(--c-wheat);
+            color: var(--c-dark);
+            transform: translate(-3px, -3px);
+            box-shadow: 7px 7px 0px rgba(0,0,0,0.4);
+        }
+
+        .wood-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px rgba(0,0,0,0.4);
+        }
+
+        .progress-container {
+            margin-top: auto;
+            padding-top: 25px;
+            border-top: 2px dashed var(--c-brown);
+        }
+        .progress-label {
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            color: var(--c-brown);
+            font-weight: bold;
+        }
+        .progress-track {
+            height: 18px;
+            background: var(--c-dark);
+            border: 2px solid var(--c-light);
+            padding: 2px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--c-green);
+            width: 0%;
+            transition: width 0.4s steps(10); 
+            box-shadow: inset -2px 0 0 rgba(0,0,0,0.3);
+        }
+
+        /* 结果页面 */
+        .result-card {
+            text-align: center;
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .pixel-result-type {
+            font-size: 6rem;
+            color: var(--c-orange);
+            text-shadow: 5px 5px 0px var(--c-brown);
+            line-height: 1;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .pixel-result-name {
+            font-size: 2.2rem;
+            color: var(--c-light);
+            background: var(--c-blue);
+            display: inline-block;
+            padding: 8px 20px;
+            margin-bottom: 25px;
+            border: 3px solid var(--c-dark);
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+        }
+
+        .pixel-desc {
+            font-size: 1.5rem;
+            text-align: left;
+            background: rgba(139, 90, 43, 0.1);
+            padding: 20px;
+            border: 3px dashed var(--c-brown);
+            line-height: 1.5;
+        }
+
+        .save-slot {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--c-blue);
+            color: var(--c-dark);
+            padding: 5px 12px;
+            border: 2px solid var(--c-dark);
+            font-size: 1.1rem;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.3);
+            font-family: 'VT323', monospace;
+        }
+        .save-slot:hover {
+            background: var(--c-wheat);
+            transform: translateY(-2px);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @media (max-width: 480px) {
+            .game-boy { height: 95vh; padding: 10px; }
+            .quest-title { font-size: 1.6rem; }
+            .question-text { font-size: 1.4rem; }
+            .wood-btn { font-size: 1.3rem; padding: 12px; }
+            .pixel-result-type { font-size: 4rem; }
+            .status-bar { padding: 5px 10px; }
+        }
+    </style>
+</head>
+<body class="bg-cottage">
+
+<!-- CRT 扫描线覆盖层 -->
+<div class="scanlines"></div>
+
+<div class="game-boy">
+    <!-- 顶部状态栏 -->
+    <div class="status-bar">
+        <div class="player-info">
+            <div class="pixel-avatar"></div>
+            <div>
+                <div style="font-size: 1.4rem; line-height: 1; font-weight: bold;">HERO</div>
+                <div style="font-size: 1rem; color: var(--c-brown);">LV.1 FARMER</div>
+            </div>
+        </div>
+        <div class="level-badge">QUEST: SOUL</div>
+    </div>
+
+    <!-- 历史记录按钮 -->
+    <div id="save-slot-btn" class="save-slot" style="display:none;" onclick="loadSavedGame()">
+        💾 LOAD SAVE
+    </div>
+
+    <!-- 主对话区域 -->
+    <div class="dialogue-box" id="main-screen">
+        <!-- 动态内容将在这里渲染 -->
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { dim: 'EI', text: "在村庄的周末庆典上，你通常会？", opts: [
+            { t: "在人群中跳舞，和每个人打招呼", s: 1 },
+            { t: "躲在角落观察，或只和熟人聊天", s: -1 },
+            { t: "主动组织游戏活动", s: 1 },
+            { t: "享受安静的时刻，避开喧嚣", s: -1 }
+        ]},
+        { dim: 'SN', text: "当你观察一片森林时，你首先看到？", opts: [
+            { t: "树木的种类、高度和具体的细节", s: 1 },
+            { t: "森林整体的氛围和神秘感", s: -1 },
+            { t: "脚下的路和周围真实的事物", s: 1 },
+            { t: "森林背后蕴含的生命力", s: -1 }
+        ]},
+        { dim: 'TF', text: "村民之间发生争执，你会？", opts: [
+            { t: "分析谁对谁错，讲道理", s: 1 },
+            { t: "安抚情绪，希望大家和气", s: -1 },
+            { t: "坚持原则，即使得罪人", s: 1 },
+            { t: "换位思考，体谅每个人的难处", s: -1 }
+        ]},
+        { dim: 'JP', text: "关于明天的农活计划，你？", opts: [
+            { t: "今晚就列好清单，按部就班", s: 1 },
+            { t: "看明天天气和心情，随机应变", s: -1 },
+            { t: "喜欢事情有明确的结局", s: 1 },
+            { t: "享受过程，保留改变主意的权利", s: -1 }
+        ]},
+        { dim: 'EI', text: "经过一周忙碌的工作，你如何恢复精力？", opts: [
+            { t: "找朋友聚会聊天", s: 1 },
+            { t: "独自在家看书或发呆", s: -1 },
+            { t: "去热闹的集市逛逛", s: 1 },
+            { t: "在河边独自垂钓", s: -1 }
+        ]},
+        { dim: 'SN', text: "学习新魔法或技能时，你更喜欢？", opts: [
+            { t: "按步骤操作，掌握具体技巧", s: 1 },
+            { t: "理解原理，探索多种可能性", s: -1 },
+            { t: "参考过去的经验和实例", s: 1 },
+            { t: "发挥创意，尝试新的方法", s: -1 }
+        ]},
+        { dim: 'TF', text: "朋友犯了一个明显的错误，你会？", opts: [
+            { t: "直接指出错误，帮他改正", s: 1 },
+            { t: "委婉提醒，怕伤了他的自尊心", s: -1 },
+            { t: "理性分析错误原因", s: 1 },
+            { t: "先安抚情绪，再谈事情", s: -1 }
+        ]},
+        { dim: 'JP', text: "你的背包通常是？", opts: [
+            { t: "井井有条，每样东西都有固定位置", s: 1 },
+            { t: "虽然乱，但我知道东西在哪", s: -1 },
+            { t: "整洁让我感到安心", s: 1 },
+            { t: "随性摆放让我感到自由", s: -1 }
+        ]},
+        { dim: 'EI', text: "你更喜欢哪种沟通方式？", opts: [
+            { t: "面对面交谈或大声喊话", s: 1 },
+            { t: "写信或发魔法信号", s: -1 },
+            { t: "边做边聊，思维通过语言表达", s: 1 },
+            { t: "想清楚了再说，内心独白丰富", s: -1 }
+        ]},
+        { dim: 'SN', text: "你更信任？", opts: [
+            { t: "五官感受到的现实", s: 1 },
+            { t: "第六感和直觉", s: -1 },
+            { t: "具体的数据和事实", s: 1 },
+            { t: "灵感和顿悟", s: -1 }
+        ]},
+        { dim: 'TF', text: "你认为自己更偏向于？", opts: [
+            { t: "理智、冷静、客观", s: 1 },
+            { t: "热情、 empathetic、主观", s: -1 },
+            { t: "即使难过也要讲道理", s: 1 },
+            { t: "道理虽对，但人情更重要", s: -1 }
+        ]},
+        { dim: 'JP', text: "面对截止日期（Deadline），你的状态是？", opts: [
+            { t: "提前完成，拒绝最后时刻的慌乱", s: 1 },
+            { t: "最后时刻才有灵感，享受紧迫感", s: -1 },
+            { t: "喜欢按计划推进", s: 1 },
+            { t: "喜欢边做边调整方向", s: -1 }
+        ]},
+        { dim: 'EI', text: "如果让你选择一份工作，你希望？", opts: [
+            { t: "团队合作多，经常与人交流", s: 1 },
+            { t: "独立负责，有安静的个人空间", s: -1 },
+            { t: "工作内容丰富多彩，接触不同的人", s: 1 },
+            { t: "工作内容专注深入，不受打扰", s: -1 }
+        ]},
+        { dim: 'SN', text: "描述一件事情时，你习惯？", opts: [
+            { t: "详述经过，注重细节真实", s: 1 },
+            { t: "概括大意，注重整体印象", s: -1 },
+            { t: "用具体的例子说明", s: 1 },
+            { t: "用比喻或抽象概念说明", s: -1 }
+        ]},
+        { dim: 'TF', text: "做决定时，什么对你最重要？", opts: [
+            { t: "是否符合逻辑和标准", s: 1 },
+            { t: "是否符合价值观和他人感受", s: -1 },
+            { t: "效率最大化", s: 1 },
+            { t: "人际和谐化", s: -1 }
+        ]},
+        { dim: 'JP', text: "旅行时，你通常是？", opts: [
+            { t: "做好详细攻略，按图索骥", s: 1 },
+            { t: "走到哪算哪，随遇而安", s: -1 },
+            { t: "必须完成打卡清单", s: 1 },
+            { t: "享受意外的惊喜", s: -1 }
+        ]},
+        { dim: 'EI', text: "你觉得自己是？", opts: [
+            { t: "外向的，容易被人了解", s: 1 },
+            { t: "内向的，需要时间敞开心扉", s: -1 },
+            { t: "行动派，先做再说", s: 1 },
+            { t: "思考派，想好再做", s: -1 }
+        ]},
+        { dim: 'SN', text: "你更擅长？", opts: [
+            { t: "记忆事实和细节", s: 1 },
+            { t: "理解概念和模式", s: -1 },
+            { t: "处理当下的具体问题", s: 1 },
+            { t: "规划未来的长远发展", s: -1 }
+        ]},
+        { dim: 'TF', text: "别人评价你时，常说你？", opts: [
+            { t: "太理性了，不够近人情", s: 1 },
+            { t: "太感性了，容易心软", s: -1 },
+            { t: "像个法官，公正无私", s: 1 },
+            { t: "像个天使，善解人意", s: -1 }
+        ]},
+        { dim: 'JP', text: "对于“未完成”的任务，你的感觉是？", opts: [
+            { t: "心里挂念，必须做完才踏实", s: 1 },
+            { t: "可以放一放，以后再说", s: -1 },
+            { t: "喜欢闭环，有始有终", s: 1 },
+            { t: "喜欢开放，保持多种可能", s: -1 }
+        ]}
+    ];
+
+    const mbtiData = {
+        "INTJ": { name: "战略建筑师", desc: "你是村庄里的幕后军师。富有想象力且意志坚定，总能在混乱中找到秩序。你独立、理性，喜欢独自规划未来。" },
+        "INTP": { name: "逻辑发明家", desc: "你是村庄里的工匠大师。对知识充满渴望，喜欢钻研事物的原理。你思维敏捷，常常有独特的见解。" },
+        "ENTJ": { name: "村庄指挥官", desc: "你是天生的领导者。大胆、果断，天生具有统筹全局的能力。你目标明确，执行力强，能带领大家一起走向繁荣。" },
+        "ENTP": { name: "机智辩论家", desc: "你是村庄里的创新者。聪明好奇，喜欢挑战传统。你思维活跃，善于发现新的可能性，是活跃气氛的开心果。" },
+        "INFJ": { name: "神秘守护者", desc: "你是村庄里的精神支柱。安静而神秘，却有着坚定的理想主义。你洞察人心，致力于帮助他人。" },
+        "INFP": { name: "治愈调停者", desc: "你是村庄里的诗人。善良、敏感，拥有丰富的内心世界。你重视真诚与和谐，总能发现生活中的美好。" },
+        "ENFJ": { name: "魅力主人公", desc: "你是村庄里的领袖。富有魅力，鼓舞人心。你天生具有感染力，善于发现他人的潜力，是大家的灵魂人物。" },
+        "ENFP": { name: "快乐竞选者", desc: "你是村庄里的探险家。热情、自由，充满创造力。你热爱新鲜事物，善于连接人与人，让生活充满乐趣。" },
+        "ISTJ": { name: "严谨物流师", desc: "你是村庄里的管家。务实、可靠，注重事实和细节。你尊重传统，做事井井有条，是维持村庄运转的坚实后盾。" },
+        "ISFJ": { name: "温暖守卫者", desc: "你是村庄里的照顾者。专注、温暖，时刻准备着保护身边的人。你细心体贴，乐于奉献，是大家最信赖的伙伴。" },
+        "ESTJ": { name: "高效总经理", desc: "你是村庄里的管理者。讲究效率，喜欢秩序。你擅长执行计划，管理事务井井有条，是出色的组织者。" },
+        "ESFJ": { name: "热心执政官", desc: "你是村庄里的外交官。热心、受欢迎，总是乐于助人。你重视和谐，善于照顾每个人的感受，是社交场合的中心。" },
+        "ISTP": { name: "冷静鉴赏家", desc: "你是村庄里的工匠。大胆、实际，擅长使用各种工具。你冷静理性，善于解决突发问题，是动手能力极强的实干家。" },
+        "ISFP": { name: "艺术探险家", desc: "你是村庄里的艺术家。灵活、有魅力，时刻准备体验新鲜事物。你敏感细腻，活在当下，具有独特的审美情趣。" },
+        "ESTP": { name: "活力企业家", desc: "你是村庄里的行动派。精力充沛，善于感知环境。你享受生活在边缘的感觉，风险承受力强，善于应对危机。" },
+        "ESFP": { name: "表演明星", desc: "你是村庄里的明星。自发、热情，永远不会让周围无聊。你享受聚光灯，善于带动气氛，是快乐的源泉。" }
+    };
+
+    let state = {
+        qIndex: 0,
+        scores: { E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0 },
+        finished: false
+    };
+
+    const screen = document.getElementById('main-screen');
+    const saveBtn = document.getElementById('save-slot-btn');
+    const body = document.body;
+
+    // 初始化
+    function init() {
+        const saved = localStorage.getItem('rpg_mbti_save');
+        if (saved) {
+            saveBtn.style.display = 'block';
+        }
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        if (state.qIndex >= questions.length) {
+            finishGame();
+            return;
+        }
+
+        const q = questions[state.qIndex];
+        const progress = ((state.qIndex) / questions.length) * 100;
+
+        let html = `
+            <div class="quest-title">Quest ${state.qIndex + 1}/20</div>
+            <div class="question-text">"${q.text}"</div>
+            <div class="options-list">
+                ${q.opts.map((opt, i) => `
+                    <button class="wood-btn" onclick="handleChoice(${opt.s}, '${q.dim}')">
+                        > ${opt.t}
+                    </button>
+                `).join('')}
+            </div>
+            <div class="progress-container">
+                <div class="progress-label">
+                    <span>QUEST PROG.</span>
+                    <span>${Math.floor(progress)}%</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: ${progress}%"></div>
+                </div>
+            </div>
+        `;
+        screen.innerHTML = html;
+    }
+
+    function handleChoice(score, dim) {
+        if (dim === 'EI') score > 0 ? state.scores.E++ : state.scores.I++;
+        if (dim === 'SN') score > 0 ? state.scores.S++ : state.scores.N++;
+        if (dim === 'TF') score > 0 ? state.scores.T++ : state.scores.F++;
+        if (dim === 'JP') score > 0 ? state.scores.J++ : state.scores.P++;
+
+        state.qIndex++;
+        saveGame();
+        renderQuestion();
+    }
+
+    function finishGame() {
+        state.finished = true;
+        saveGame();
+
+        const type = 
+            (state.scores.E >= state.scores.I ? 'E' : 'I') +
+            (state.scores.S >= state.scores.N ? 'S' : 'N') +
+            (state.scores.T >= state.scores.F ? 'T' : 'F') +
+            (state.scores.J >= state.scores.P ? 'J' : 'P');
+        
+        const data = mbtiData[type];
+
+        // 切换背景到丰收场景
+        body.className = 'bg-harvest';
+        createFallingLeaves();
+
+        let html = `
+            <div class="result-card">
+                <div style="font-size: 3rem; color: var(--c-wheat);">🏆 QUEST CLEAR!</div>
+                <div class="pixel-result-type">${type}</div>
+                <div class="pixel-result-name">${data.name}</div>
+                <div class="pixel-desc">
+                    ${data.desc}
+                </div>
+                <br>
+                <button class="wood-btn" style="width:100%; text-align:center;" onclick="resetGame()">
+                    🔄 NEW GAME +
+                </button>
+            </div>
+        `;
+        screen.innerHTML = html;
+    }
+
+    // 创建飘落的叶子动画
+    function createFallingLeaves() {
+        // 清除旧的叶子
+        document.querySelectorAll('.falling-leaf').forEach(e => e.remove());
+        
+        for(let i=0; i<15; i++) {
+            const leaf = document.createElement('div');
+            leaf.className = 'falling-leaf';
+            leaf.style.left = Math.random() * 100 + 'vw';
+            leaf.style.animationDuration = (Math.random() * 3 + 2) + 's';
+            leaf.style.animationDelay = (Math.random() * 2) + 's';
+            // 随机颜色：黄色或橙色
+            leaf.style.background = Math.random() > 0.5 ? 'var(--c-wheat)' : 'var(--c-orange)';
+            document.body.appendChild(leaf);
+        }
+    }
+
+    function saveGame() {
+        localStorage.setItem('rpg_mbti_save', JSON.stringify(state));
+    }
+
+    function loadSavedGame() {
+        const saved = localStorage.getItem('rpg_mbti_save');
+        if (saved) {
+            state = JSON.parse(saved);
+            if (state.finished) {
+                finishGame();
+            } else {
+                renderQuestion();
+            }
+        }
+    }
+
+    function resetGame() {
+        localStorage.removeItem('rpg_mbti_save');
+        state = { qIndex: 0, scores: { E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0 }, finished: false };
+        saveBtn.style.display = 'none';
+        
+        // 切换回木屋背景
+        body.className = 'bg-cottage';
+        document.querySelectorAll('.falling-leaf').forEach(e => e.remove());
+        
+        renderQuestion();
+    }
+
+    init();
+</script>
+</body>
+</html>
+```
